@@ -1,0 +1,5 @@
+workspace/**/*.py
+workspace/**/*.jpg
+workspace/**/*.xml
+workspace/**/*.record
+workspace/**/*.config
