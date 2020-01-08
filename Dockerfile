@@ -31,6 +31,7 @@ RUN python -m pip install pillow==7.0.0
 RUN python -m pip install lxml==4.4.2
 RUN python -m pip install jupyter==1.0.0
 RUN python -m pip install matplotlib==3.1.2
+RUN python -m pip install pandas
 
 ENV DEBIAN_FRONTEND=noninteractive 
 RUN apt-get -y install protobuf-compiler python3-tk
@@ -41,4 +42,6 @@ RUN protoc object_detection/protos/*.proto --python_out=.
 ENV PYTHONPATH=/tensorflow/models/research:/tensorflow/models/research/slim:/tensorflow/models/research/object_detection
 RUN jupyter notebook --generate-config --allow-root
 RUN echo "c.NotebookApp.password = u'sha1:6a3f528eec40:6e896b6e4828f525a6e20e5411cd1c8075d68619'" >> /root/.jupyter/jupyter_notebook_config.py
+
 COPY ./object_detection_tutorial.ipynb /tensorflow/models/research/object_detection/object_detection_tutorial.ipynb
+COPY ./scripts /tensorflow/scripts
