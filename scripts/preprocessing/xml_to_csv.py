@@ -1,10 +1,8 @@
 """
 Usage:
 # Create train data:
-python xml_to_csv.py -i [PATH_TO_IMAGES_FOLDER]/train -o [PATH_TO_ANNOTATIONS_FOLDER]/train_labels.csv
+python xml_to_csv.py -p project-name
 
-# Create test data:
-python xml_to_csv.py -i [PATH_TO_IMAGES_FOLDER]/test -o [PATH_TO_ANNOTATIONS_FOLDER]/test_labels.csv
 """
 
 import os
@@ -52,26 +50,28 @@ def main():
     # Initiate argument parser
     parser = argparse.ArgumentParser(
         description="Sample TensorFlow XML-to-CSV converter")
-    parser.add_argument("-i",
-                        "--inputDir",
-                        help="Path to the folder where the input .xml files are stored",
+    parser.add_argument("-p",
+                        "--project",
+                        help="project name",
                         type=str)
-    parser.add_argument("-o",
-                        "--outputFile",
-                        help="Name of output .csv file (including path)", type=str)
     args = parser.parse_args()
 
-    if(args.inputDir is None):
-        args.inputDir = os.getcwd()
-    if(args.outputFile is None):
-        args.outputFile = args.inputDir + "/labels.csv"
+    project_dir = os.path.join("/tensorflow", "workspace", args.project)
 
-    assert(os.path.isdir(args.inputDir))
+    assert(os.path.isdir(project_dir))
 
-    xml_df = xml_to_csv(args.inputDir)
-    xml_df.to_csv(
-        args.outputFile, index=None)
-    print('Successfully converted xml to csv.')
+    train_dir = os.path.join(project_dir, "images", "train")
+    test_dir = os.path.join(project_dir, "images", "test")
+
+    assert(os.path.isdir(train_dir))
+    assert(os.path.isdir(test_dir))
+
+    for i, d in enumerate([train_dir, test_dir]):
+        xml_df = xml_to_csv(d)
+        out = "train" if i == 0 else "test"
+        xml_df.to_csv(
+            os.path.join("/tensorflow", "workspace", args.project, "annotations", out + "_labels.csv"), index=None)
+        print(f'Successfully converted {out}ing xml to csv.')
 
 
 if __name__ == '__main__':

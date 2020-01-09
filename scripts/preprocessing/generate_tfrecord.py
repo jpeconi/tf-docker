@@ -1,11 +1,9 @@
 """
 Usage:
 
-# Create train data:
-python generate_tfrecord.py --csv_input=<PATH_TO_ANNOTATIONS_FOLDER>/train_labels.csv  --output_path=<PATH_TO_ANNOTATIONS_FOLDER>/train.record
+# Create records:
+python generate_tfrecord.py --project project-name
 
-# Create test data:
-python generate_tfrecord.py --csv_input=<PATH_TO_ANNOTATIONS_FOLDER>/test_labels.csv  --output_path=<PATH_TO_ANNOTATIONS_FOLDER>/test.record
 """
 
 from __future__ import division
@@ -24,22 +22,12 @@ from object_detection.utils import dataset_util
 from collections import namedtuple, OrderedDict
 
 flags = tf.app.flags
-flags.DEFINE_string('csv_input', '', 'Path to the CSV input')
-flags.DEFINE_string('output_path', '', 'Path to output TFRecord')
-flags.DEFINE_string('img_path', '', 'Path to images')
+flags.DEFINE_string('project', '', 'Project Name')
 FLAGS = flags.FLAGS
 
+sys.path.append(f"../../workspace/{FLAGS.project}")
 
-# TO-DO replace this with label map
-# These must match the label map file in the annotations directory
-def class_text_to_int(row_label):
-    if row_label == 'dog':
-        return 1
-    elif row_label == 'cat':
-        return 2
-    else:
-        None
-
+from customlabels import class_text_to_int
 
 def split(df, group):
     data = namedtuple('data', ['filename', 'object'])
@@ -90,17 +78,25 @@ def create_tf_example(group, path):
 
 
 def main(_):
-    writer = tf.python_io.TFRecordWriter(FLAGS.output_path)
-    path = os.path.join(os.getcwd(), FLAGS.img_path)
-    examples = pd.read_csv(FLAGS.csv_input)
-    grouped = split(examples, 'filename')
-    for group in grouped:
-        tf_example = create_tf_example(group, path)
-        writer.write(tf_example.SerializeToString())
+    train, test = "train", "test"
 
-    writer.close()
-    output_path = os.path.join(os.getcwd(), FLAGS.output_path)
-    print('Successfully created the TFRecords: {}'.format(output_path))
+    project_dir = os.path.join("/tensorflow", "workspace", FLAGS.project)
+
+    for d in [train, test]:
+        output = os.path.join(project_dir, "annotations", f"{d}.record")
+        images = os.path.join(project_dir, "images", d)
+        csv = os.path.join(project_dir, "annotations", f"{d}_labels.csv")
+
+        writer = tf.python_io.TFRecordWriter(output)
+        examples = pd.read_csv(csv)
+        grouped = split(examples, 'filename')
+
+        for group in grouped:
+            tf_example = create_tf_example(group, images)
+            writer.write(tf_example.SerializeToString())
+
+        writer.close()
+        print('Successfully created the TFRecords: {}'.format(output))
 
 
 if __name__ == '__main__':

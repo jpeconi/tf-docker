@@ -13,8 +13,7 @@ RUN apt-get -y install python3-pip
 
 RUN python -m pip install pip
 
-# Install required dependencies
-# RUN apt-get -y install protobuf-compiler python3-pil python3-lxml
+# Install GIT
 RUN apt-get -y install git
 
 # Clone tensorflow models repository into the folder created
@@ -45,3 +44,5 @@ RUN echo "c.NotebookApp.password = u'sha1:6a3f528eec40:6e896b6e4828f525a6e20e541
 
 COPY ./object_detection_tutorial.ipynb /tensorflow/models/research/object_detection/object_detection_tutorial.ipynb
 COPY ./scripts /tensorflow/scripts
+
+RUN cp /tensorflow/models/research/object_detection/export_inference_graph.py /tensorflow/scripts

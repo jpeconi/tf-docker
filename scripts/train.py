@@ -24,21 +24,8 @@ can be specified by --pipeline_config_path.
 Example usage:
     ./train \
         --logtostderr \
-        --train_dir=path/to/train_dir \
-        --pipeline_config_path=pipeline_config.pbtxt
+        --project
 
-2) Three configuration files can be provided: a model_pb2.DetectionModel
-configuration file to define what type of DetectionModel is being trained, an
-input_reader_pb2.InputReader file to specify what training data will be used and
-a train_pb2.TrainConfig file to configure training parameters.
-
-Example usage:
-    ./train \
-        --logtostderr \
-        --train_dir=path/to/train_dir \
-        --model_config_path=model_config.pbtxt \
-        --train_config_path=train_config.pbtxt \
-        --input_config_path=train_input_config.pbtxt
 """
 
 import functools
@@ -67,33 +54,30 @@ flags.DEFINE_integer('worker_replicas', 1, 'Number of worker+trainer '
 flags.DEFINE_integer('ps_tasks', 0,
                      'Number of parameter server tasks. If None, does not use '
                      'a parameter server.')
-flags.DEFINE_string('train_dir', '',
-                    'Directory to save the checkpoints and training summaries.')
-
-flags.DEFINE_string('pipeline_config_path', '',
-                    'Path to a pipeline_pb2.TrainEvalPipelineConfig config '
-                    'file. If provided, other configs are ignored')
-
 flags.DEFINE_string('train_config_path', '',
                     'Path to a train_pb2.TrainConfig config file.')
 flags.DEFINE_string('input_config_path', '',
                     'Path to an input_reader_pb2.InputReader config file.')
 flags.DEFINE_string('model_config_path', '',
                     'Path to a model_pb2.DetectionModel config file.')
-
+flags.DEFINE_string('project', '', 'The name of the project folder')                  
 FLAGS = flags.FLAGS
 
 
 @tf.contrib.framework.deprecated(None, 'Use object_detection/model_main.py.')
 def main(_):
-  assert FLAGS.train_dir, '`train_dir` is missing.'
-  if FLAGS.task == 0: tf.gfile.MakeDirs(FLAGS.train_dir)
-  if FLAGS.pipeline_config_path:
+  assert FLAGS.project, '`project` is missing.'
+  
+  train_dir = os.path.join("/tensorflow", "workspace", FLAGS.project, "training/")
+  pipeline_config_path = os.path.join("/tensorflow", "workspace", FLAGS.project, "training", "model.config")
+
+  if FLAGS.task == 0: tf.gfile.MakeDirs(train_dir)
+  if pipeline_config_path:
     configs = config_util.get_configs_from_pipeline_file(
-        FLAGS.pipeline_config_path)
+        pipeline_config_path)
     if FLAGS.task == 0:
-      tf.gfile.Copy(FLAGS.pipeline_config_path,
-                    os.path.join(FLAGS.train_dir, 'pipeline.config'),
+      tf.gfile.Copy(pipeline_config_path,
+                    os.path.join(train_dir, 'pipeline.config'),
                     overwrite=True)
   else:
     configs = config_util.get_configs_from_multiple_files(
@@ -104,7 +88,7 @@ def main(_):
       for name, config in [('model.config', FLAGS.model_config_path),
                            ('train.config', FLAGS.train_config_path),
                            ('input.config', FLAGS.input_config_path)]:
-        tf.gfile.Copy(config, os.path.join(FLAGS.train_dir, name),
+        tf.gfile.Copy(config, os.path.join(train_dir, name),
                       overwrite=True)
 
   model_config = configs['model']
@@ -176,7 +160,7 @@ def main(_):
       ps_tasks,
       worker_job_name,
       is_chief,
-      FLAGS.train_dir,
+      train_dir,
       graph_hook_fn=graph_rewriter_fn)
 
 
