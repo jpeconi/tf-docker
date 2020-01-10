@@ -99,7 +99,7 @@ Put your images inside this newly created ```pet``` dir. Training will go to ```
 - Change save Dir to match the source image directory 
 - Select the ```Create Rect Box``` icon from the menu and drag a box around each object and specify the desired label  
 
-![Labelled](assets/labelled.png)  
+![Labelled](assets/labelled.PNG)  
 
 - Click ```Save``` and this will generate an ```xml``` document with the correct labels and coordinates to the bounding box for each label. Repeat this process with both the ```testing``` and ```training``` directories until all photos are labelled  
 
