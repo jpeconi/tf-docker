@@ -42,9 +42,11 @@ project-name
     - ```images\train```: This folder contains a copy of all images, and the respective *.xml files, which will be used to train our model.
     - ```images\test```: This folder contains a copy of all images, and the respective *.xml files, which will be used to test our model.  
 
+3. ```output```: This folder will be the destination for our trained model upon completion of the training
+
 3. ```pre-trained-model```: This folder will contain the pre-trained model of our choice, which shall be used as a starting checkpoint for our training job.
 
-4. ```training```: This folder will contain the training pipeline configuration file *.config, as well as a *.pbtxt label map file and all files generated during the training of our model.
+4. ```training```: This folder will contain the training pipeline configuration file *.config, as well as a *.pbtxt label map file and all files generated during the training of our model.  
 
 5. ```README.md```: This is an optional file which provides some general information regarding the training conditions of our model. It is not used by TensorFlow in any way, but it generally helps when you have a few training folders and/or you are revisiting a trained model after some time.  
 
@@ -159,6 +161,137 @@ Included in this repository is some scripts which will handle this functionality
 
 > Again! Directory structure is important here, as these scripts are written assuming files are located in certain locations. Follow this guide and you should have no issues  
 
+There are two steps to converting to TFRecords:  
 
+    1. Convert the individual .xml files to one unified csv file for each dataset test and train
+    
+    2. Convert the csv files for each dataset into .record files  
 
+#### Converting .xml to .csv  
 
+There are a few scripts inside the ```/tensorflow/scripts``` directory. These scripts are pre written to perform these tasks. To perform the conversion run the ```xml_to_csv.py``` python script passing in the project name as a parameter. ```-p <project name>``` project name being whatever name you gave the directory you mounted uner ```/tensorflow/workspace/<project name>```. For this example we used ```pets```
+
+```python
+    python /tensorflow/scripts/xml_to_csv.py --project pets
+```  
+
+Upon completion of this script, you should get a message saying files were successfuly converted to csv.  
+
+#### Converting from .csv to .record  
+
+The following ```generate_tfrecord.py``` script is also located in ```/tensorflow/scripts```. The process of running this will be very similar to the previous step.   
+
+> Note unlike the previous step which accepted a simple -p parameter. The following script accepts the fully qualified --project. This is due to Tensorflow performing the agument parsing, as oppose to the core Python argument parser.  
+
+```python
+    python /tensorflow/scripts/generate_tfrecord.py --project pets
+```  
+
+Again passing in the name of the folder created under ```workspace``` as the project name argument. Upon completion of this script you will be shows a confirmation message in the console that the record files have been generated 
+
+## ❗ The following step can be completed on the local machine (outside container) ❗
+
+### ⚙ Configuring Training Pipeline  
+
+For the purposes of this README we will not be creating a training job from the scratch, but rather we will go through how to reuse one of the pre-trained models provided by TensorFlow. If you would like to train an entirely new model,you can have a look at [TensorFlow’s tutorial](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/configuring_jobs.md).
+
+The model we shall be using in our examples is the ssd_inception_v2_coco model, since it provides a relatively good trade-off between performance and speed, however there are a number of other models you can use, all of which are listed in [TensorFlow’s detection model zoo](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md). More information about the detection performance, as well as reference times of execution, for each of the available pre-trained models can be found [here](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md#coco-trained-models-coco-models).
+ 
+Once the ```*.tar.gz``` file has been downloaded, open it using a decompression program of your choice (e.g. 7zip, WinZIP, etc.). Next, open the folder that you see when the compressed folder is opened (typically it will have the same name as the compressed folded, without the ```*.tar.gz``` extension), and extract it’s contents inside the folder ```training_demo\pre-trained-model```.  
+
+There should be a file ending in ```.config``` contained inside of the extracted directory. The file included in the model selected for this example is called ```pipeline.config```. This file should be renamed to ```model.config``` and moved to the ```training``` directory inside your project directory. At this point our ```/tensorflow/workspace/pets/pre-trained-models``` directory should contain the contents of the ```.tar``` file without the ```pipeline.config```. The ```/tensorflow/workspace/pets/training``` directory should contain our newly moved ```model.config``` file.
+
+## ❗ The configuration will vary based on model selected ❗  
+
+For the purpose of this example, using the selected model we will change the following configuration values. Open up the ```model.config``` file with the editor of your choice.  
+
+> Note: As long as we have our folder mounted into the running docker container, any changes made to files on our local machine to this mounted folder will be reflected inside the container. This will allow for ease of editing this config file without having to use a console based editor within the container.  
+
+- **num_classes**: This value should be changed to the number of objects we are trying to identify. For our examples it would be ```2```. Our labels are ```cat``` and ```dog```  
+- **fine_tune_checkpoint**: This value will be changed to the following ```/tensorflow/workspace/pets/pre-trained-model/model.cpkt```. For your example change pets to the project name.  
+- **train_input_reader**. There will be a couple changes to make under this section. 
+    - input_path: This will be the path to our training .record ```/tensorflow/workspace/pets/annotations/train.record```  
+    - label_map_path: This will be the path to out labelmap file. ```/tensorflow/workspace/pets/annotations/labelmap.pbtxt```  
+- **num_examples**: Change this value to the number of images you have in the ```/tensorflow/workspace/pets/images/test``` directory. This will be the number of testing examples we have  
+- **eval_input_reader**. There will be a couple changes to make under this section. 
+    - input_path: This will be the path to our test .record ```/tensorflow/workspace/pets/annotations/test.record```  
+    - label_map_path: This will be the path to out labelmap file. ```/tensorflow/workspace/pets/annotations/labelmap.pbtxt```  
+
+Save the file and we are ready to train the model.  
+
+## 💡 Training the Model  
+
+The final step of the process is to run our training. There is one last script in the scripts directory which will perform this task. To run the script run the following command.  
+
+```python
+    python /tensorflow/scripts/train.py --logtostderr --project pets
+```  
+
+Swap ```pets``` with your project name.  
+
+If all is configured correctly you should see output which resembles the following:  
+
+```
+INFO:tensorflow:global step 1: loss = 13.8886 (12.339 sec/step)
+INFO:tensorflow:global step 2: loss = 16.2202 (0.937 sec/step)
+INFO:tensorflow:global step 3: loss = 13.7876 (0.904 sec/step)
+INFO:tensorflow:global step 4: loss = 12.9230 (0.894 sec/step)
+INFO:tensorflow:global step 5: loss = 12.7497 (0.922 sec/step)
+INFO:tensorflow:global step 6: loss = 11.7563 (0.936 sec/step)
+INFO:tensorflow:global step 7: loss = 11.7245 (0.910 sec/step)
+INFO:tensorflow:global step 8: loss = 10.7993 (0.916 sec/step)
+INFO:tensorflow:global step 9: loss = 9.1277 (0.890 sec/step)
+INFO:tensorflow:global step 10: loss = 9.3972 (0.919 sec/step)
+INFO:tensorflow:global step 11: loss = 9.9487 (0.897 sec/step)
+INFO:tensorflow:global step 12: loss = 8.7954 (0.884 sec/step)
+INFO:tensorflow:global step 13: loss = 7.4329 (0.906 sec/step)
+INFO:tensorflow:global step 14: loss = 7.8270 (0.897 sec/step)
+INFO:tensorflow:global step 15: loss = 6.4877 (0.894 sec/step)
+```  
+
+## ❗ Tensorboard (Optional)  
+
+> Note: The following steps will have to be completed on a local machine. Unless you have forwarded ports from the container out to your local machine. Forwarding the ports can be done using ```-p <container port>:<host port>``` when initiating the ```docker run``` command at the start of this tutorial.  The default port for Tensorboard is ```6006```
+
+If you would like to see a graphical display of the training progress, you can use ```Tensorboard``` to do so.  
+
+Activate a Python environment which has Tensorflow installed in it and run the following command:  
+
+Steps from within the container  
+
+```python  
+    tensorboard --logdir=/tensorflow/workspace/pets/training/
+```  
+> Swap pets with your project name  
+
+Steps from host machine (outside container)  
+
+```python 
+    tensorboard --logdir=c:\mydir\pets  
+```  
+
+> Swap c:\mydir\pets with the path to the mounted folder on your host machine  
+
+You should see the following output ```TensorBoard 1.6.0 at http://YOUR-PC:6006 (Press CTRL+C to quit)```  
+
+Open a browser and navigate to ```http://localhost:6006```. You should be presented with a dashboard containing training metrics.  
+
+## 🖥 Exporting a Trained Inference Graph  
+
+Once your training job is complete, you need to extract the newly trained inference graph, which will be later used to perform the object detection. This can be done as follows:  
+
+- Check inside your ```pets/training``` folder for the ```model.ckpt-*``` checkpoint file with the highest number following the name of the dash e.g. model.ckpt-34350). This number represents the training step index at which the file was created.
+
+- Alternatively, simply sort all the files inside ```pets/training``` by descending time and pick the ```model.ckpt-*``` file that comes first in the list.
+
+- Make a note of the file’s name, as it will be passed as an argument when we call the ```export_inference_graph.py``` script.
+
+- Now, run the following command:  
+
+```python
+python /tensorflow/scripts/export_inference_graph.py --input_type image_tensor --trained_checkpoint_prefix /tensorflow/workspace/pets/training/model.cpkt-<number from earlier step>
+```  
+
+This should run and in the ```output``` directory will be the frozen inference graph which can be used for future object detection  
+
+A large portion of this guide was made using material found [here](https://tensorflow-object-detection-api-tutorial.readthedocs.io/). This is a great tutorial for getting going with Tensorflow object detection  
