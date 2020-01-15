@@ -44,5 +44,3 @@ RUN echo "c.NotebookApp.password = u'sha1:6a3f528eec40:6e896b6e4828f525a6e20e541
 
 COPY ./object_detection_tutorial.ipynb /tensorflow/models/research/object_detection/object_detection_tutorial.ipynb
 COPY ./scripts /tensorflow/scripts
-
-RUN cp /tensorflow/models/research/object_detection/export_inference_graph.py /tensorflow/scripts

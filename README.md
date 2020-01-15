@@ -114,12 +114,12 @@ Example, if you were looking to detect basketballs and baseballs your labelmap w
 ```python
     item {
         id: 1
-        name: 'basketball'
+        name: 'dog'
     }
 
     item {
         id: 2
-        name: 'baseball'
+        name: 'cat'
     }
 ``` 
 
