@@ -259,14 +259,14 @@ Activate a Python environment which has Tensorflow installed in it and run the f
 
 Steps from within the container  
 
-```python  
+```  
     tensorboard --logdir=/tensorflow/workspace/pets/training/
 ```  
 > Swap pets with your project name  
 
 Steps from host machine (outside container)  
 
-```python 
+``` 
     tensorboard --logdir=c:\mydir\pets  
 ```  
 
@@ -284,12 +284,12 @@ Once your training job is complete, you need to extract the newly trained infere
 
 - Alternatively, simply sort all the files inside ```pets/training``` by descending time and pick the ```model.ckpt-*``` file that comes first in the list.
 
-- Make a note of the file’s name, as it will be passed as an argument when we call the ```export_inference_graph.py``` script.
+- Make a note of the number at the end of the file’s name, as it will be passed as an argument when we call the ```export_inference_graph.py``` script.
 
 - Now, run the following command:  
 
-```python
-python /tensorflow/scripts/export_inference_graph.py --input_type image_tensor --trained_checkpoint_prefix /tensorflow/workspace/pets/training/model.cpkt-<number from earlier step>
+```
+python /tensorflow/scripts/export_inference_graph.py --input_type image_tensor --step <number from last step> --project pets
 ```  
 
 This should run and in the ```output``` directory will be the frozen inference graph which can be used for future object detection  

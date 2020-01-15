@@ -122,9 +122,8 @@ flags.DEFINE_string('input_shape', None,
                     'dimensions. If not specified, for an `image_tensor, the '
                     'default shape will be partially specified as '
                     '`[None, None, None, 3]`.')
-flags.DEFINE_string('trained_checkpoint_prefix', None,
-                    'Path to trained checkpoint, typically of the form '
-                    'path/to/model.ckpt')
+flags.DEFINE_string('step', None,
+                    'model.ckpt-XXXX. Step number for checkpoint')
 flags.DEFINE_string('project', None,
                     'Name of the project')
 flags.DEFINE_string('config_override', '',
@@ -132,14 +131,15 @@ flags.DEFINE_string('config_override', '',
                     'text proto to override pipeline_config_path.')
 flags.DEFINE_boolean('write_inference_graph', False,
                      'If true, writes inference graph to disk.')
-tf.app.flags.mark_flag_as_required('trained_checkpoint_prefix')
 tf.app.flags.mark_flag_as_required('project')
+tf.app.flags.mark_flag_as_required('step')
 FLAGS = flags.FLAGS
 
 
 def main(_):
   config_path = "/tensorflow/workspace/{}/training/model.config".format(FLAGS.project)
-  output_directory = "/tensorflow/workspace/{}/output/frozen_model.pb".format(FLAGS.project)
+  output_directory = "/tensorflow/workspace/{}/output".format(FLAGS.project)
+  trained_checkpoint_prefix = "/tensorflow/workspace/{}/training/model.ckpt-{}".format(FLAGS.project, FLAGS.step)
 
   pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()
   with tf.gfile.GFile(config_path, 'r') as f:
@@ -153,7 +153,7 @@ def main(_):
   else:
     input_shape = None
   exporter.export_inference_graph(
-      FLAGS.input_type, pipeline_config, FLAGS.trained_checkpoint_prefix,
+      FLAGS.input_type, pipeline_config, trained_checkpoint_prefix,
       output_directory, input_shape=input_shape,
       write_inference_graph=FLAGS.write_inference_graph)
 
